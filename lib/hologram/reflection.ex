@@ -407,17 +407,37 @@ defmodule Hologram.Reflection do
   """
   @spec otp_app() :: atom
   def otp_app do
-    if Code.ensure_loaded?(Mix.Project) do
-      Mix.Project.config()[:app]
-    else
-      [project_app] =
-        for {app, _description, _vsn} <- Application.loaded_applications(),
-            deps = Application.spec(app)[:applications],
-            :hologram in deps do
-          app
-        end
+    app = Application.get_env(:hologram, :otp_app) || mix_root_app()
 
-      project_app
+    case app != nil or hologram_referrers() do
+      true ->
+        app
+
+      [app] ->
+        Application.put_env(:hologram, :otp_app, app)
+        app
+
+      apps ->
+        raise "Found #{inspect(apps)} depending on Hologram, use explicit `config :hologram, :otp_app, :your_app_name`"
+    end
+  end
+
+  defp mix_root_app do
+    Code.ensure_loaded?(Mix.Project) && Mix.Project.config()[:app]
+  end
+
+  defp hologram_referrers do
+    if Code.ensure_loaded?(Mix.Project) do
+      for {app, deps} <- Mix.Project.deps_tree(),
+          :hologram in deps do
+        app
+      end
+    else
+      for {app, _description, _vsn} <- Application.loaded_applications(),
+          deps = Application.spec(app)[:applications],
+          :hologram in deps do
+        app
+      end
     end
   end
 

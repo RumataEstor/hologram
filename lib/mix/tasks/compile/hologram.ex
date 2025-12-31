@@ -135,9 +135,15 @@ defmodule Mix.Tasks.Compile.Hologram do
     :ok
   end
 
+  defp hologram_path do
+    # normally hologram is a dependency
+    %{:hologram => hologram_path} = Mix.Project.deps_paths()
+    hologram_path
+  end
+
   defp build_default_opts do
-    root_dir = Reflection.root_dir()
-    assets_dir = Path.join([root_dir, "deps", "hologram", "assets"])
+    assets_dir = Path.join([hologram_path(), "assets"])
+    static_dir = Reflection.release_static_dir()
     build_dir = Reflection.build_dir()
     node_modules_path = Path.join(assets_dir, "node_modules")
 
@@ -148,7 +154,7 @@ defmodule Mix.Tasks.Compile.Hologram do
       # Biome is almost x20 faster than Prettier in Hologram benchmarks
       formatter_bin_path: Path.join([node_modules_path, ".bin", "biome"]),
       js_dir: Path.join(assets_dir, "js"),
-      static_dir: Path.join([root_dir, "priv", "static", "hologram"]),
+      static_dir: Path.join([static_dir, "hologram"]),
       tmp_dir: Path.join(build_dir, "tmp")
     ]
   end

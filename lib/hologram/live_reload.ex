@@ -101,9 +101,22 @@ defmodule Hologram.LiveReload do
   """
   @spec watched_dirs :: [String.t()]
   def watched_dirs do
-    root_dir = Reflection.root_dir()
-    compiled_paths = Mix.Project.get().project()[:elixirc_paths]
-    Enum.map(compiled_paths, &Path.join(root_dir, &1))
+    root_dir = Path.dirname(Mix.Project.project_file())
+    otp_app = Reflection.otp_app()
+
+    compile_paths =
+      case Mix.Project.apps_paths() do
+        %{^otp_app => app_path} ->
+          Mix.Project.in_project(otp_app, app_path, fn module ->
+            compile_paths = module.project()[:elixirc_paths]
+            Enum.map(compile_paths, &Path.expand(Path.join(app_path, &1)))
+          end)
+
+        nil ->
+          Mix.Project.get().project()[:elixirc_paths]
+      end
+
+    Enum.map(compile_paths, &Path.join(root_dir, &1))
   end
 
   @doc """
